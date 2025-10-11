@@ -1,0 +1,159 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/ai_coding_tutor/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  
+  // AI Tutor sessions
+  tutorSessions TutorSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verificationtokens")
+}
+
+// AI Tutor specific models
+model TutorSession {
+  id        String           @id @default(cuid())
+  userId    String?          // Nullable for anonymous sessions
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    SessionStatus    @default(ACTIVE)
+  isAnonymous Boolean        @default(false)
+  
+  // Session metadata
+  title           String?
+  description     String?
+  programmingLanguage String?    // javascript, python, etc.
+  
+  // LiveKit room information
+  roomName        String?
+  
+  messages        Message[]
+  codeChanges     CodeChange[]
+  checkpoints     Checkpoint[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tutor_sessions")
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  ARCHIVED
+}
+
+model Message {
+  id          String       @id @default(cuid())
+  sessionId   String
+  session     TutorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  role        MessageRole
+  content     String       @db.Text
+  metadata    Json?        // For storing additional data like code blocks, error info, etc.
+  
+  createdAt   DateTime     @default(now())
+
+  @@map("messages")
+  @@index([sessionId, createdAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model CodeChange {
+  id          String       @id @default(cuid())
+  sessionId   String
+  session     TutorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  filePath    String
+  diff        String       @db.Text    // Git diff format
+  beforeCode  String?      @db.Text    // Original code
+  afterCode   String?      @db.Text    // Updated code
+  isApplied   Boolean      @default(false)
+  description String?      // Human-readable description of the change
+  
+  appliedAt   DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@map("code_changes")
+  @@index([sessionId, createdAt])
+}
+
+model Checkpoint {
+  id            String       @id @default(cuid())
+  sessionId     String
+  session       TutorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  name          String
+  description   String?
+  state         Json         // Serialized state of the session at this point
+  
+  createdAt     DateTime     @default(now())
+
+  @@map("checkpoints")
+  @@index([sessionId, createdAt])
+}
