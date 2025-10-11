@@ -66,17 +66,29 @@ export function SessionRoom({ session, user }: SessionRoomProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
+  const [tokenError, setTokenError] = useState<string | null>(null);
+
   useEffect(() => {
     // Get LiveKit token for this session
     const getToken = async () => {
       try {
+        console.log('[SessionRoom] Fetching token for session:', session.id);
         const response = await fetch(`/api/sessions/${session.id}/token`);
-        if (response.ok) {
-          const data = await response.json();
-          setToken(data.token);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMsg = errorData.error || `Failed to get token (${response.status})`;
+          console.error('[SessionRoom] Token fetch failed:', errorMsg, errorData);
+          setTokenError(errorMsg);
+          return;
         }
-      } catch (error) {
-        console.error('Error getting token:', error);
+        
+        const data = await response.json();
+        console.log('[SessionRoom] Token received successfully');
+        setToken(data.token);
+      } catch (error: any) {
+        console.error('[SessionRoom] Error getting token:', error);
+        setTokenError(error?.message || 'Network error while fetching token');
       }
     };
 
@@ -126,7 +138,27 @@ export function SessionRoom({ session, user }: SessionRoomProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                {session.roomName && token ? (
+                {tokenError ? (
+                  <div className="flex-1 flex items-center justify-center bg-red-50 rounded-lg border border-red-200">
+                    <div className="text-center p-8 max-w-md">
+                      <div className="text-red-600 text-5xl mb-4">⚠️</div>
+                      <h3 className="text-lg font-semibold text-red-900 mb-2">
+                        Video Session Error
+                      </h3>
+                      <p className="text-red-700 mb-4">{tokenError}</p>
+                      <div className="text-sm text-red-600 bg-red-100 p-3 rounded mb-4">
+                        <strong>Debug info:</strong> Check browser console for details
+                      </div>
+                      <Button 
+                        onClick={() => window.location.reload()} 
+                        variant="outline"
+                        className="border-red-600 text-red-600 hover:bg-red-50"
+                      >
+                        Reload Page
+                      </Button>
+                    </div>
+                  </div>
+                ) : session.roomName && token ? (
                   <LiveKitRoom
                     roomName={session.roomName}
                     token={token}
@@ -138,6 +170,7 @@ export function SessionRoom({ session, user }: SessionRoomProps) {
                     <div className="text-center">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">Connecting to video session...</p>
+                      <p className="text-xs text-gray-400 mt-2">Getting LiveKit token...</p>
                     </div>
                   </div>
                 )}
