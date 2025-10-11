@@ -2,24 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 import '@livekit/components-styles';
-
-// Dynamically import LiveKit components to avoid SSR issues
-const LiveKitRoomComponent = dynamic(
-  () => import('@livekit/components-react').then((mod) => mod.LiveKitRoom),
-  { ssr: false }
-);
-
-const VideoConference = dynamic(
-  () => import('@livekit/components-react').then((mod) => mod.VideoConference),
-  { ssr: false }
-);
-
-const RoomAudioRenderer = dynamic(
-  () => import('@livekit/components-react').then((mod) => mod.RoomAudioRenderer),
-  { ssr: false }
-);
 
 interface LiveKitRoomProps {
   roomName: string;
@@ -30,12 +13,28 @@ interface LiveKitRoomProps {
 
 export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: LiveKitRoomProps) {
   const [mounted, setMounted] = useState(false);
+  const [LiveKitComponents, setLiveKitComponents] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    
+    // Dynamically import LiveKit components only on client
+    import('@livekit/components-react')
+      .then((mod) => {
+        setLiveKitComponents({
+          LiveKitRoom: mod.LiveKitRoom,
+          VideoConference: mod.VideoConference,
+          RoomAudioRenderer: mod.RoomAudioRenderer,
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to load LiveKit components:', err);
+        setError('Failed to load video components. Please refresh the page.');
+      });
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !LiveKitComponents) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg">
         <div className="text-center">
@@ -45,6 +44,24 @@ export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: Li
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg">
+        <div className="text-center p-8">
+          <div className="text-red-500 mb-4">⚠️ {error}</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { LiveKitRoom: LiveKitRoomComponent, VideoConference, RoomAudioRenderer } = LiveKitComponents;
 
   return (
     <div className="flex-1 flex flex-col">

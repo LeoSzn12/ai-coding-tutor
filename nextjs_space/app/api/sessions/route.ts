@@ -9,7 +9,7 @@ import { createLiveKitToken } from '@/lib/livekit';
 export async function POST(request: Request) {
   try {
     const session = await getAuthSession();
-    const { title, description, programmingLanguage } = await request.json();
+    const { title, description, programmingLanguage, platform } = await request.json();
 
     if (!title || !programmingLanguage) {
       return NextResponse.json({ error: 'Title and programming language are required' }, { status: 400 });
@@ -18,11 +18,17 @@ export async function POST(request: Request) {
     // Create room name
     const roomName = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
+    // Build description with platform info
+    let fullDescription = description || '';
+    if (platform) {
+      fullDescription = `Platform: ${platform}\n${fullDescription}`;
+    }
+    
     // Create tutor session
     const tutorSession = await prisma.tutorSession.create({
       data: {
         title,
-        description: description || null,
+        description: fullDescription || null,
         programmingLanguage,
         roomName,
         userId: (session?.user as any)?.id || null,
