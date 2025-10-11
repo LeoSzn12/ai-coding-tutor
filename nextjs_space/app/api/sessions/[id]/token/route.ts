@@ -1,19 +1,17 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
-import { createLiveKitToken } from '@/lib/livekit';
 import { prisma } from '@/lib/db';
+import { createLiveKitToken } from '@/lib/livekit';
 
-interface Props {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(request: Request, { params }: Props) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getAuthSession();
     
+    // Get the tutor session
     const tutorSession = await prisma.tutorSession.findUnique({
       where: {
         id: params.id,
@@ -21,24 +19,32 @@ export async function GET(request: Request, { params }: Props) {
     });
 
     if (!tutorSession) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
     }
 
-    // Check access permissions
+    // Check if user has access to this session
     if (tutorSession.userId && (!session?.user || tutorSession.userId !== (session.user as any).id)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
     }
 
-    if (!tutorSession.roomName) {
-      return NextResponse.json({ error: 'Room not configured' }, { status: 400 });
-    }
+    // Generate LiveKit token
+    const identity = session?.user?.email || `guest-${Date.now()}`;
+    const roomName = tutorSession.roomName || tutorSession.id;
+    
+    const token = await createLiveKitToken(roomName, identity);
 
-    const identity = session?.user?.email || `anonymous-${Date.now()}`;
-    const token = await createLiveKitToken(tutorSession.roomName, identity);
-
-    return NextResponse.json({ token });
+    return NextResponse.json({ token, roomName });
   } catch (error) {
-    console.error('Error creating LiveKit token:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error generating LiveKit token:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate token' },
+      { status: 500 }
+    );
   }
 }
