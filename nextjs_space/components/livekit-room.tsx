@@ -3,8 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Mic, MicOff, Monitor, MonitorOff } from 'lucide-react';
+import '@livekit/components-styles';
 
 // Dynamically import LiveKit components to avoid SSR issues
 const LiveKitRoomComponent = dynamic(
@@ -14,6 +13,11 @@ const LiveKitRoomComponent = dynamic(
 
 const VideoConference = dynamic(
   () => import('@livekit/components-react').then((mod) => mod.VideoConference),
+  { ssr: false }
+);
+
+const RoomAudioRenderer = dynamic(
+  () => import('@livekit/components-react').then((mod) => mod.RoomAudioRenderer),
   { ssr: false }
 );
 
@@ -47,12 +51,15 @@ export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: Li
       <LiveKitRoomComponent
         serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://ai-vc-tutor-709uinga.livekit.cloud'}
         token={token}
-        connectOptions={{ autoSubscribe: true }}
+        connect={true}
+        video={true}
+        audio={true}
         onConnected={onConnected}
         onDisconnected={onDisconnected}
-        className="flex-1"
+        className="flex-1 lk-room"
       >
         <VideoConference />
+        <RoomAudioRenderer />
       </LiveKitRoomComponent>
     </div>
   );
