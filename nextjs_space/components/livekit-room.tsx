@@ -26,6 +26,8 @@ export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: Li
           LiveKitRoom: mod.LiveKitRoom,
           VideoConference: mod.VideoConference,
           RoomAudioRenderer: mod.RoomAudioRenderer,
+          useLocalParticipant: mod.useLocalParticipant,
+          useTracks: mod.useTracks,
         });
       })
       .catch((err) => {
@@ -69,10 +71,32 @@ export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: Li
         serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://ai-vc-tutor-709uinga.livekit.cloud'}
         token={token}
         connect={true}
-        video={true}
         audio={true}
+        video={true}
+        screen={true}
         onConnected={onConnected}
         onDisconnected={onDisconnected}
+        options={{
+          publishDefaults: {
+            audioPreset: {
+              maxBitrate: 96000,
+            },
+            videoPreset: {
+              resolution: {
+                width: 1280,
+                height: 720,
+              },
+              maxBitrate: 1500000,
+            },
+            screenSharePreset: {
+              resolution: {
+                width: 1920,
+                height: 1080,
+              },
+              maxBitrate: 3000000,
+            },
+          },
+        }}
         className="flex-1 lk-room"
       >
         <VideoConference />

@@ -1,5 +1,5 @@
 
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, TrackSource } from 'livekit-server-sdk';
 
 export async function createLiveKitToken(roomName: string, identity: string) {
   const apiKey = process.env.LIVEKIT_API_KEY!;
@@ -16,6 +16,12 @@ export async function createLiveKitToken(roomName: string, identity: string) {
     canPublish: true,
     canSubscribe: true,
     canPublishData: true,
+    canPublishSources: [
+      TrackSource.CAMERA,
+      TrackSource.MICROPHONE,
+      TrackSource.SCREEN_SHARE,
+      TrackSource.SCREEN_SHARE_AUDIO,
+    ],
   });
 
   return await token.toJwt();
