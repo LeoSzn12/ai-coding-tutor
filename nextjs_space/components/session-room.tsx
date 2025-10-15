@@ -158,9 +158,9 @@ export function SessionRoom({ session, user }: SessionRoomProps) {
                       </Button>
                     </div>
                   </div>
-                ) : session.roomName && token ? (
+                ) : token ? (
                   <LiveKitRoom
-                    roomName={session.roomName}
+                    roomName={session.roomName || session.id}
                     token={token}
                     onConnected={() => setIsConnected(true)}
                     onDisconnected={() => setIsConnected(false)}

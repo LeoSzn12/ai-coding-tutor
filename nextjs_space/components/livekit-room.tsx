@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LiveKitRoom as LiveKitRoomComponent, VideoConference, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
 
 interface LiveKitRoomProps {
@@ -13,30 +14,14 @@ interface LiveKitRoomProps {
 
 export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: LiveKitRoomProps) {
   const [mounted, setMounted] = useState(false);
-  const [LiveKitComponents, setLiveKitComponents] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    
-    // Dynamically import LiveKit components only on client
-    import('@livekit/components-react')
-      .then((mod) => {
-        setLiveKitComponents({
-          LiveKitRoom: mod.LiveKitRoom,
-          VideoConference: mod.VideoConference,
-          RoomAudioRenderer: mod.RoomAudioRenderer,
-          useLocalParticipant: mod.useLocalParticipant,
-          useTracks: mod.useTracks,
-        });
-      })
-      .catch((err) => {
-        console.error('Failed to load LiveKit components:', err);
-        setError('Failed to load video components. Please refresh the page.');
-      });
   }, []);
 
-  if (!mounted || !LiveKitComponents) {
+  if (!mounted) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg">
         <div className="text-center">
@@ -63,39 +48,27 @@ export function LiveKitRoom({ roomName, token, onConnected, onDisconnected }: Li
     );
   }
 
-  const { LiveKitRoom: LiveKitRoomComponent, VideoConference, RoomAudioRenderer } = LiveKitComponents;
+  const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://ai-vc-tutor-709uinga.livekit.cloud';
 
   return (
     <div className="flex-1 flex flex-col">
       <LiveKitRoomComponent
-        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://ai-vc-tutor-709uinga.livekit.cloud'}
+        serverUrl={serverUrl}
         token={token}
         connect={true}
-        audio={true}
-        video={true}
-        screen={true}
-        onConnected={onConnected}
-        onDisconnected={onDisconnected}
-        options={{
-          publishDefaults: {
-            audioPreset: {
-              maxBitrate: 96000,
-            },
-            videoPreset: {
-              resolution: {
-                width: 1280,
-                height: 720,
-              },
-              maxBitrate: 1500000,
-            },
-            screenSharePreset: {
-              resolution: {
-                width: 1920,
-                height: 1080,
-              },
-              maxBitrate: 3000000,
-            },
-          },
+        onConnected={() => {
+          console.log('[LiveKit] Connected to room:', roomName);
+          setIsConnected(true);
+          onConnected?.();
+        }}
+        onDisconnected={() => {
+          console.log('[LiveKit] Disconnected from room:', roomName);
+          setIsConnected(false);
+          onDisconnected?.();
+        }}
+        onError={(error) => {
+          console.error('[LiveKit] Room error:', error);
+          setError(`Video conference error: ${error.message}`);
         }}
         className="flex-1 lk-room"
       >

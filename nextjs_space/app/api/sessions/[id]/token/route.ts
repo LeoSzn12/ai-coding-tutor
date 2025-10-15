@@ -46,7 +46,7 @@ export async function GET(
 
     // Generate LiveKit token
     const identity = session?.user?.email || `guest-${Date.now()}`;
-    const roomName = tutorSession.roomName || tutorSession.id;
+    const roomName = tutorSession.roomName || `session-${tutorSession.id}`;
     
     console.log('[LiveKit Token] Generating token for:', { identity, roomName });
     
