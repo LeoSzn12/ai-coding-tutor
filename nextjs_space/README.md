@@ -1,6 +1,8 @@
 
 # AI Coding Tutor
 
+> **Paused / historical prototype.** This repository is not maintained or approved for deployment. A real-value `.env` was committed in the repository's history. Removing it from the current branch does **not** erase earlier commits or copies. Treat its database, authentication, AWS, Abacus AI, and LiveKit credentials as compromised and rotate/revoke any still-active credentials before reusing this project. Do not deploy from an older commit. See `.env.example` for placeholders only.
+
 An AI-powered coding tutor application for non-technical "vibe coders" featuring real-time video/audio calls with screen sharing, browser extension for code context capture, AI agent for error explanation and suggestions, and session management.
 
 ## Features
